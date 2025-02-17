@@ -5,15 +5,13 @@ import os
 import random
 from pathlib import Path
 from time import sleep
-from typing import Any, Type, Union
-from urllib.parse import urlparse
-from types import TracebackType  # Add this import
+from typing import Type, Union
+from types import TracebackType
 
 import ipapi
 import pycountry
-import seleniumwire.undetected_chromedriver as webdriver
-import undetected_chromedriver
 from ipapi.exceptions import RateLimited
+from selenium import webdriver
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
 
@@ -23,7 +21,7 @@ from src.userAgentGenerator import GenerateUserAgent
 class Browser:
     """WebDriver wrapper class."""
 
-    webdriver: Union[undetected_chromedriver.Chrome, None]
+    webdriver: Union[webdriver.Chrome, None]
 
     def __init__(self, mobile: bool) -> None:
         logging.debug("in __init__")
@@ -33,7 +31,6 @@ class Browser:
         self.localeLang, self.localeGeo = self.getLanguageCountry()
         self.userDataDir = self.setupProfiles()
         self.browserConfig = getBrowserConfig(self.userDataDir)
-        self.proxy = CONFIG.browser.proxy
         (
             self.userAgent,
             self.userAgentMetadata,
@@ -61,8 +58,8 @@ class Browser:
         self.webdriver.close()
         self.webdriver.quit()
 
-    def browserSetup(self) -> undetected_chromedriver.Chrome:
-        options = undetected_chromedriver.ChromeOptions()
+    def browserSetup(self) -> webdriver.Chrome:
+        options = ChromeOptions()
         options.headless = self.headless
         options.add_argument(f"--lang={self.localeLang}")
         options.add_argument("--log-level=3")
@@ -84,39 +81,20 @@ class Browser:
         options.add_argument("--disable-search-engine-choice-screen")
         options.page_load_strategy = "eager"
 
-        seleniumwireOptions: dict[str, Any] = {"verify_ssl": False}
-
-        if self.proxy:
-            parsed_proxy = urlparse(self.proxy)
-            seleniumwireOptions["proxy"] = {
-                "http": f"{parsed_proxy.scheme}://{parsed_proxy.hostname}:{parsed_proxy.port}",
-                "https": f"{parsed_proxy.scheme}://{parsed_proxy.hostname}:{parsed_proxy.port}",
-                "no_proxy": "localhost,127.0.0.1",
-            }
-            if parsed_proxy.username and parsed_proxy.password:
-                seleniumwireOptions["proxy"]["auth"] = (parsed_proxy.username, parsed_proxy.password)
-
         driver = None
 
         if os.environ.get("DOCKER"):
             driver = webdriver.Chrome(
                 options=options,
-                seleniumwire_options=seleniumwireOptions,
-                user_data_dir=self.userDataDir.as_posix(),
-                driver_executable_path="/usr/bin/chromedriver",
+                executable_path="/usr/bin/chromedriver",
             )
         else:
             version = self.getChromeVersion()
             major = int(version.split(".")[0])
             driver = webdriver.Chrome(
                 options=options,
-                seleniumwire_options=seleniumwireOptions,
-                user_data_dir=self.userDataDir.as_posix(),
                 version_main=major,
             )
-
-        seleniumLogger = logging.getLogger("seleniumwire")
-        seleniumLogger.setLevel(logging.ERROR)
 
         if self.browserConfig.get("sizes"):
             deviceHeight = self.browserConfig["sizes"]["height"]
