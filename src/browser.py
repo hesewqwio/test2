@@ -16,7 +16,6 @@ from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
 
 from src.utils import CONFIG, getBrowserConfig, getProjectRoot, saveBrowserConfig
-from src.userAgentGenerator import GenerateUserAgent
 
 class Browser:
     """WebDriver wrapper class."""
@@ -31,14 +30,6 @@ class Browser:
         self.localeLang, self.localeGeo = self.getLanguageCountry()
         self.userDataDir = self.setupProfiles()
         self.browserConfig = getBrowserConfig(self.userDataDir)
-        (
-            self.userAgent,
-            self.userAgentMetadata,
-            newBrowserConfig,
-        ) = GenerateUserAgent().userAgent(self.browserConfig, mobile)
-        if newBrowserConfig:
-            self.browserConfig = newBrowserConfig
-            saveBrowserConfig(self.userDataDir, self.browserConfig)
         self.webdriver = self.browserSetup()
         logging.debug("out __init__")
 
@@ -81,17 +72,7 @@ class Browser:
         options.add_argument("--disable-search-engine-choice-screen")
         options.page_load_strategy = "eager"
 
-        driver = None
-
-        if os.environ.get("DOCKER"):
-            driver = webdriver.Chrome(
-                options=options,
-                executable_path="/usr/bin/chromedriver",
-            )
-        else:
-            driver = webdriver.Chrome(
-                options=options,
-            )
+        driver = webdriver.Chrome(options=options)
 
         if self.browserConfig.get("sizes"):
             deviceHeight = self.browserConfig["sizes"]["height"]
@@ -145,15 +126,6 @@ class Browser:
                     "height": deviceHeight,
                     "scale": 1,
                 },
-            },
-        )
-
-        driver.execute_cdp_cmd(
-            "Emulation.setUserAgentOverride",
-            {
-                "userAgent": self.userAgent,
-                "platform": self.userAgentMetadata["platform"],
-                "userAgentMetadata": self.userAgentMetadata,
             },
         )
 
