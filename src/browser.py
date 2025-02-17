@@ -89,11 +89,8 @@ class Browser:
                 executable_path="/usr/bin/chromedriver",
             )
         else:
-            version = self.getChromeVersion()
-            major = int(version.split(".")[0])
             driver = webdriver.Chrome(
                 options=options,
-                version_main=major,
             )
 
         if self.browserConfig.get("sizes"):
