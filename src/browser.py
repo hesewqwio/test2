@@ -29,7 +29,7 @@ class Browser:
         self.headless = not CONFIG.browser.visible
         self.localeLang, self.localeGeo = self.getLanguageCountry()
         self.userDataDir = self.setupProfiles()
-        self.browserConfig = getBrowserConfig(self.userDataDir)
+        self.browserConfig = getBrowserConfig(self.userDataDir) or {}
         self.webdriver = self.browserSetup()
         logging.debug("out __init__")
 
