@@ -4,9 +4,11 @@ import logging.handlers as handlers
 import sys
 import traceback
 from datetime import datetime
+from selenium import webdriver
 
 from src import Browser, Searches
 from src.utils import CONFIG, sendNotification, getProjectRoot
+from src.userAgentGenerator import get_user_agent  # Import the user agent generator
 
 def setupLogging():
     _format = CONFIG['logging']['format']
@@ -39,7 +41,18 @@ def setupLogging():
     )
 
 def perform_searches(mobile):
-    with Browser(mobile=mobile) as browser:
+    options = webdriver.ChromeOptions()
+    device_type = "mobile" if mobile else "desktop"
+    user_agent = get_user_agent(device_type)  # Get user agent from userAgentGenerator.py
+    options.add_argument(f"user-agent={user_agent}")
+    options.add_argument('--disable-gpu')
+    options.add_argument('--window-size=1920x1080')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--remote-debugging-port=9222')
+    options.add_argument('--headless')
+    
+    with Browser(mobile=mobile, options=options) as browser:
         searches = Searches(browser=browser)
         searches.performSearch(CONFIG['url'], CONFIG['duration'])
 
